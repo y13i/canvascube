@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CanvasCube</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300" rel="stylesheet">
+    <style>
+      html, body, canvas {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      main {
+        position: fixed;
+        height: 100%;
+        top: 0;
+        left: 0;
+        padding: 1em;
+        overflow: scroll;
+        background: rgba(255, 255, 255, 0.8);
+        color: #888;
+        font-family: 'Open Sans Condensed', sans-serif;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/1.0.26/vue.min.js"></script>
+  </head>
+  <body id="app">
+    <!-- nazeka {{}} de bind suruto canvas ga masshiro ni nacchatte kanashii -->
+    <!-- <canvas id="canvas" style="width: {{width}}; height: {{height}}"></canvas> -->
+    <canvas id="canvas" style="background-color: {{background}}" v-el:canvas @click="refresh"></canvas>
+    <main>
+      <h1>CanvasCube</h1>
+      <p>Made by <a href="https://y13i.com/" style="color: #6faaa5; text-decoration: none;">@y13i</a></p>
+      <form>
+        <h2>Dimensions:</h2>
+        <div>
+          <label for="edgeLength">Edge Length:&nbsp;</label>
+          <input type="number" id="edgeLength" v-model="edgeLength" @change="refresh" debounce="100" number max="2000" min="100" step="100">
+        </div>
+        <div>
+          <label for="overlapX">Overlap X:&nbsp;</label>
+          <input type="number" id="overlapX" v-model="overlap.x" @change="refresh" debounce="100" number max="20" min="0.2" step="0.1">
+        </div>
+        <div>
+          <label for="overlapY">Overlap Y:&nbsp;</label>
+          <input type="number" id="overlapY" v-model="overlap.y" @change="refresh" debounce="100" number max="20" min="0.2" step="0.1">
+        </div>
+        <h2>Background:</h2>
+        <div>
+          <label for="background">Color:&nbsp;</label>
+          <input type="text" id="background" v-model="background" @change="refresh" debounce="100">
+        </div>
+        <h2>Fill</h2>
+        <div>
+          <label for="fillEnabled">Enabled:&nbsp;</label>
+          <input type="checkbox" id="fillEnabled" v-model="fill.enabled" @change="refresh" debounce="100">
+        </div>
+        <div>
+          <label for="fillHueMedian">Hue:&nbsp;</label>
+          <input type="number" id="fillHueMedian" v-model="fill.color.hue.median" @change="refresh" debounce="100" number max="360" min="0" step="10">
+          <label for="fillHueVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="fillHueVariance" v-model="fill.color.hue.variance" @change="refresh" debounce="100" number max="360" min="0" step="10">
+        </div>
+        <div>
+          <label for="fillSaturationMedian">Saturation:&nbsp;</label>
+          <input type="number" id="fillSaturationMedian" v-model="fill.color.saturation.median" @change="refresh" debounce="100" number max="100" min="0" step="10">
+          <label for="fillSaturationVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="fillSaturationVariance" v-model="fill.color.saturation.variance" @change="refresh" debounce="100" number max="100" min="0" step="10">
+        </div>
+        <div>
+          <label for="fillLuminanceMedian">Luminance:&nbsp;</label>
+          <input type="number" id="fillLuminanceMedian" v-model="fill.color.luminance.median" @change="refresh" debounce="100" number max="100" min="0" step="10">
+          <label for="fillLuminanceVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="fillLuminanceVariance" v-model="fill.color.luminance.variance" @change="refresh" debounce="100" number max="100" min="0" step="10">
+        </div>
+        <div>
+          <label for="fillAlphaMedian">Alpha:&nbsp;</label>
+          <input type="number" id="fillAlphaMedian" v-model="fill.color.alpha.median" @change="refresh" debounce="100" number max="1.0" min="0" step="0.1">
+          <label for="fillAlphaVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="fillAlphaVariance" v-model="fill.color.alpha.variance" @change="refresh" debounce="100" number max="1.0" min="0" step="0.1">
+        </div>
+        <h2>Stroke</h2>
+        <div>
+          <label for="strokeEnabled">Enabled:&nbsp;</label>
+          <input type="checkbox" id="strokeEnabled" v-model="stroke.enabled" @change="refresh" debounce="100">
+        </div>
+        <div>
+          <label for="strokeHueMedian">Hue:&nbsp;</label>
+          <input type="number" id="strokeHueMedian" v-model="stroke.color.hue.median" @change="refresh" debounce="100" number max="360" min="0" step="10">
+          <label for="strokeHueVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="strokeHueVariance" v-model="stroke.color.hue.variance" @change="refresh" debounce="100" number max="360" min="0" step="10">
+        </div>
+        <div>
+          <label for="strokeSaturationMedian">Saturation:&nbsp;</label>
+          <input type="number" id="strokeSaturationMedian" v-model="stroke.color.saturation.median" @change="refresh" debounce="100" number max="100" min="0" step="10">
+          <label for="strokeSaturationVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="strokeSaturationVariance" v-model="stroke.color.saturation.variance" @change="refresh" debounce="100" number max="100" min="0" step="10">
+        </div>
+        <div>
+          <label for="strokeLuminanceMedian">Luminance:&nbsp;</label>
+          <input type="number" id="strokeLuminanceMedian" v-model="stroke.color.luminance.median" @change="refresh" debounce="100" number max="100" min="0" step="10">
+          <label for="strokeLuminanceVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="strokeLuminanceVariance" v-model="stroke.color.luminance.variance" @change="refresh" debounce="100" number max="100" min="0" step="10">
+        </div>
+        <div>
+          <label for="strokeAlphaMedian">Alpha:&nbsp;</label>
+          <input type="number" id="strokeAlphaMedian" v-model="stroke.color.alpha.median" @change="refresh" debounce="100" number max="1.0" min="0" step="0.1">
+          <label for="strokeAlphaVariance">&nbsp;+/-&nbsp;</label>
+          <input type="number" id="strokeAlphaVariance" v-model="stroke.color.alpha.variance" @change="refresh" debounce="100" number max="1.0" min="0" step="0.1">
+        </div>
+        <h2>Auto Refresh</h2>
+        <div>
+          <label for="autoRefreshEnabled">Enabled:&nbsp;</label>
+          <input type="checkbox" id="autoRefreshEnabled" v-model="autoRefresh.enabled" @change="resetAutoRefresh" debounce="100">
+        </div>
+        <div>
+          <label for="autoRefreshInterval">Interval:&nbsp;</label>
+          <input type="number" id="autoRefreshInterval" v-model="autoRefresh.interval" @change="resetAutoRefresh" debounce="100" number max="100000" min="1000" step="1000">
+        </div>
+      </form>
+    </main>
+    <script>
+      (function() {
+        'use strict';
+
+        var randomHsla = function(param) {
+          var hue        = param.hue.median;
+          var saturation = param.saturation.median;
+          var luminance  = param.luminance.median;
+          var alpha      = param.alpha.median;
+
+          var min, max;
+
+          if (param.hue.variance) {
+            min = Math.max(0, hue - param.hue.variance);
+            max = Math.min(hue + param.hue.variance, 360);
+
+            hue = Math.random() * (max - min) + min;
+          }
+
+          if (param.saturation.variance) {
+            min = Math.max(0, saturation - param.saturation.variance);
+            max = Math.min(saturation + param.saturation.variance, 100);
+
+            saturation = Math.random() * (max - min) + min;
+          }
+
+          if (param.luminance.variance) {
+            min = Math.max(0, luminance - param.luminance.variance);
+            max = Math.min(luminance + param.luminance.variance, 100);
+
+            luminance = Math.random() * (max - min) + min;
+          }
+
+          if (param.alpha.variance) {
+            min = Math.max(0, alpha - param.alpha.variance);
+            max = Math.min(alpha + param.alpha.variance, 1);
+
+            alpha = Math.random() * (max - min) + min;
+          }
+
+          var color = `hsla(${hue}, ${saturation}%, ${luminance}%, ${alpha})`;
+
+          return color;
+        };
+
+        var degree2radian = function(degree) {
+          return Math.PI * degree / 180;
+        };
+
+        var app = new Vue({
+          el: '#app',
+
+          data: {
+            edgeLength: 200,
+            background: '#ffffff',
+            width:      0,
+            height:     0,
+
+            overlap: {
+              x: 1,
+              y: 1,
+            },
+
+            fill: {
+              enabled: true,
+
+              color: {
+                hue: {
+                  median:   176,
+                  variance: 0,
+                },
+
+                saturation: {
+                  median:   30,
+                  variance: 30,
+                },
+
+                luminance: {
+                  median:   50,
+                  variance: 0,
+                },
+
+                alpha: {
+                  median:   0.4,
+                  variance: 0.4,
+                },
+              },
+            },
+
+            stroke: {
+              enabled: true,
+
+              color: {
+                hue: {
+                  median:   176,
+                  variance: 0,
+                },
+
+                saturation: {
+                  median:   30,
+                  variance: 30,
+                },
+
+                luminance: {
+                  median:   80,
+                  variance: 20,
+                },
+
+                alpha: {
+                  median:   1,
+                  variance: 0,
+                },
+              },
+            },
+
+            autoRefresh: {
+              enabled:    false,
+              interval:   3000,
+              intervalId: null,
+            },
+          },
+
+          ready: function() {
+            this.refresh();
+            window.addEventListener('resize', this.refresh);
+          },
+
+          beforeDestroy: function() {
+            window.removeEventListener('resize', this.refresh);
+          },
+
+          methods: {
+            refresh: function() {
+              this.width  = window.innerWidth;
+              this.height = window.innerHeight;
+
+              // nazeka direct ni dom ijiranaito ugokanai...
+              var canvas    = this.$els.canvas;
+              canvas.width  = window.innerWidth;
+              canvas.height = window.innerHeight;
+
+              this.draw();
+            },
+
+            resetAutoRefresh: function() {
+              if (this.autoRefresh.intervalId) {
+                clearInterval(this.autoRefresh.intervalId);
+              }
+
+              if (this.autoRefresh.enabled) {
+                this.autoRefresh.intervalId = setInterval(function() {
+                  this.refresh();
+                }.bind(this), this.autoRefresh.interval);
+              }
+            },
+
+            draw: function() {
+              var canvas   = this.$els.canvas;
+              var context  = canvas.getContext('2d');
+              var adjacent = this.edgeLength * Math.sin(Math.PI / 3);
+              var opposite = this.edgeLength * Math.cos(Math.PI / 3);
+
+              var offsetX   = 0;
+              var offsetY   = 0;
+              var cubeIndex = 0;
+              var rowIndex  = 0;
+
+              while(offsetY - this.edgeLength < this.height) {
+                while(offsetX - this.edgeLength < this.width) {
+                  for (var faceIndex = 0; faceIndex < 6; faceIndex += 1) {
+                    context.setTransform(1, 0, 0, 1, offsetX, offsetY);
+                    context.rotate(degree2radian((120 * faceIndex) - (faceIndex > 2 ? 60 : 0)));
+                    context.beginPath();
+
+                    context.moveTo(0,             0);
+                    context.lineTo(adjacent,      opposite);
+                    context.lineTo(0,             this.edgeLength);
+                    context.lineTo(adjacent * -1, opposite);
+
+                    context.closePath();
+
+                    if (this.fill.enabled) {
+                      context.fillStyle = randomHsla(this.fill.color);
+                      context.fill();
+                    }
+
+                    if (this.stroke.enabled) {
+                      context.strokeStyle = randomHsla(this.stroke.color);
+                      context.stroke();
+                    }
+                  }
+
+                  cubeIndex += 1;
+
+                  offsetX += adjacent * 2 * this.overlap.x;
+                }
+
+                rowIndex += 1;
+
+                offsetX  = adjacent * (rowIndex % 2);
+                offsetY += this.edgeLength * 1.5 * this.overlap.y;
+              }
+            },
+          },
+        });
+      })();
+    </script>
+  </body>
+</html>
